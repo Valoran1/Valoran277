@@ -1,50 +1,59 @@
-
+const form = document.getElementById("chat-form");
+const input = document.getElementById("user-input");
 const chatLog = document.getElementById("chat-log");
-const chatForm = document.getElementById("chat-form");
-const userInput = document.getElementById("user-input");
 
-chatForm.addEventListener("submit", async (e) => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const message = userInput.value.trim();
+  const message = input.value.trim();
   if (!message) return;
 
   appendMessage("Ti", message);
-  userInput.value = "";
+  input.value = "";
 
-  const responseElem = appendMessage("Valoran", "...");
-  const response = await fetch("/.netlify/functions/chat", {
-    method: "POST",
-    body: JSON.stringify({
-      messages: [
-        { role: "system", content: "Deluješ kot moški mentor, stoičen, neposreden, a človeški. Ne filozofiraš, ampak poglobiš se v težavo." },
-        { role: "user", content: message }
-      ]
-    }),
-  });
+  const responseEl = appendMessage("Valoran", "");
 
-  const data = await response.json();
-  typeWriter(responseElem, data.reply);
+  try {
+    const res = await fetch("/.netlify/functions/chat", {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    });
+
+    if (!res.ok) throw new Error("Napaka v odzivu.");
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let fullText = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      fullText += chunk;
+      responseEl.innerHTML = fullText;
+      scrollToBottom();
+    }
+  } catch (err) {
+    responseEl.innerHTML = "⚠️ Napaka pri odgovoru.";
+  }
 });
 
 function appendMessage(sender, text) {
-  const div = document.createElement("div");
-  div.className = "message";
-  div.innerHTML = `<strong>${sender}:</strong> <span>${text}</span>`;
-  chatLog.appendChild(div);
+  const msgEl = document.createElement("div");
+  msgEl.className = "message";
+  msgEl.innerHTML = `<strong>${sender}:</strong> ${text}`;
+  chatLog.appendChild(msgEl);
+  scrollToBottom();
+  return msgEl;
+}
+
+function scrollToBottom() {
   chatLog.scrollTop = chatLog.scrollHeight;
-  return div.querySelector("span");
 }
 
-function typeWriter(element, text, i = 0) {
-  if (i < text.length) {
-    element.textContent += text.charAt(i);
-    setTimeout(() => typeWriter(element, text, i + 1), 20);
-  }
-}
-
-userInput.addEventListener("keydown", function (e) {
+input.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
-    chatForm.dispatchEvent(new Event("submit"));
+    form.dispatchEvent(new Event("submit"));
   }
 });
