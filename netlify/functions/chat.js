@@ -1,49 +1,44 @@
 
-const { Readable } = require("stream");
-const fetch = require("node-fetch");
+const { OpenAI } = require("openai");
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 exports.handler = async function (event, context) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ reply: "API ključ ni nastavljen." }),
-    };
-  }
-
-  const body = JSON.parse(event.body || '{}');
-  const { messages } = body;
-
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        messages,
-        temperature: 0.7,
-        stream: false
-      }),
+    const body = JSON.parse(event.body);
+    const userMessage = body.message;
+
+    const stream = await openai.chat.completions.create({
+      model: "gpt-4o",
+      stream: true,
+      messages: [
+        {
+          role: "system",
+          content: `Deluješ kot moški mentor z jasnim, stoičnim glasom. 
+Tvoj cilj je pomagati uporabniku rasti – bodisi v osebnem razvoju, disciplini, fitnesu ali financah. 
+Odgovarjaj v kratkih, jasnih stavkih. 
+Ne podajaj dolgih razlag naenkrat – raje postavljaj podvprašanja, da bolje razumeš težavo. 
+Samo ko je odgovor jasen, svetuj konkretno.`
+        },
+        { role: "user", content: userMessage },
+      ],
     });
 
-    const data = await response.json();
-
-    if (!response.ok || !data.choices || !data.choices[0]) {
-      throw new Error(data?.error?.message || "Neveljaven odziv OpenAI.");
-    }
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ reply: data.choices[0].message.content })
-    };
-  } catch (err) {
-    console.error("Napaka v funkciji:", err.message);
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (error) {
+    console.error("Function error:", error.message);
     return {
       statusCode: 500,
-      body: JSON.stringify({ reply: "Napaka: AI trenutno ni dosegljiv." }),
+      body: JSON.stringify({ error: error.message }),
     };
   }
 };
+
