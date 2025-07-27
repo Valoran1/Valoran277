@@ -1,61 +1,48 @@
-
+/* ====== Global Styles ====== */
 body {
-  font-family: Arial, sans-serif;
-  background-color: #0e0e0e;
-  color: #f4f4f4;
   margin: 0;
   padding: 0;
+  background-color: #121212;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
 
 .container {
-  max-width: 700px;
-  margin: auto;
-  padding: 20px;
-}
-
-.logo {
-  width: 100px;
+  width: 100%;
+  max-width: 800px;
+  padding: 2rem;
+  box-sizing: border-box;
 }
 
 header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 2rem;
 }
 
+.logo {
+  width: 80px;
+  height: auto;
+  margin-bottom: 1rem;
+}
+
+h1 {
+  font-size: 2.5rem;
+  color: #f5c518; /* stoic gold */
+  margin: 0;
+  letter-spacing: 2px;
+}
+
+h2 {
+  font-size: 1.2rem;
+  color: #cccccc;
+  font-weight: 300;
+  margin-top: 0.3rem;
+}
+
+/* ====== Chat Log Styles ====== */
 .chat-log {
-  border: 1px solid #333;
-  padding: 10px;
-  height: 400px;
-  overflow-y: auto;
-  background: #1e1e1e;
-  border-radius: 8px;
-  margin-bottom: 15px;
-}
-
-.message {
-  margin-bottom: 10px;
-}
-
-.chat-form {
-  display: flex;
-  flex-direction: column;
-}
-
-.chat-form textarea {
-  resize: none;
-  padding: 10px;
-  font-size: 16px;
-  margin-bottom: 10px;
-  border-radius: 5px;
-  border: none;
-}
-
-.chat-form button {
-  padding: 10px;
-  font-size: 16px;
-  background-color: #444;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
+  background-color: #1e1
