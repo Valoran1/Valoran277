@@ -1,7 +1,9 @@
-
 [build]
-  functions = "netlify/functions"
-  publish = "."
+publish = "."
+functions = "netlify/functions"
 
 [build.environment]
-  OPENAI_API_KEY = ""
+OPENAI_API_KEY = "SKRITI_KLJUČ" # Ta del odstrani iz kode v živo projektu
+
+[functions]
+node_bundler = "esbuild"
