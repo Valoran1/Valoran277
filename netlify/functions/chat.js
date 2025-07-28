@@ -1,11 +1,10 @@
-// netlify/functions/chat.js
-import { OpenAI } from "openai";
+const { OpenAI } = require("openai");
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function handler(event) {
+exports.handler = async function (event) {
   try {
     const { message } = JSON.parse(event.body);
 
@@ -15,8 +14,7 @@ export async function handler(event) {
       messages: [
         {
           role: "system",
-          content:
-            "Deluješ kot moški AI mentor. Sprašuj podvprašanja, razčleni probleme in vodi uporabnika k rešitvi kot brat – jasno, jedrnato, brez nakladanja.",
+          content: "Deluješ kot moški AI mentor. Sprašuj podvprašanja, razčleni probleme in vodi uporabnika k rešitvi kot brat – jasno, jedrnato, brez nakladanja.",
         },
         {
           role: "user",
@@ -25,32 +23,26 @@ export async function handler(event) {
       ],
     });
 
-    return new Response(streamToReadable(stream), {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-      },
-    });
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+      body: await streamToString(stream),
+    };
   } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Server error", details: error.message }),
+      body: "Napaka: " + error.message,
     };
   }
+};
+
+async function streamToString(stream) {
+  let result = "";
+  for await (const chunk of stream) {
+    result += chunk.choices?.[0]?.delta?.content || "";
+  }
+  return result;
 }
 
-function streamToReadable(stream) {
-  const encoder = new TextEncoder();
-  const reader = stream[Symbol.asyncIterator]();
-  return new ReadableStream({
-    async pull(controller) {
-      const { value, done } = await reader.next();
-      if (done) {
-        controller.close();
-      } else {
-        controller.enqueue(encoder.encode(value.choices[0]?.delta?.content || ""));
-      }
-    },
-  });
-}
 
 
