@@ -7,53 +7,46 @@ form.addEventListener("submit", async (e) => {
   const message = input.value.trim();
   if (!message) return;
 
-  appendMessage("Ti", message);
+  appendMessage("user", message);
   input.value = "";
 
-  const responseEl = appendMessage("Valoran", "");
+  const response = await fetch("/.netlify/functions/chat", {
+    method: "POST",
+    body: JSON.stringify({ message }),
+  });
 
-  try {
-    const res = await fetch("/.netlify/functions/chat", {
-      method: "POST",
-      body: JSON.stringify({ message }),
-    });
+  if (!response.ok) {
+    appendMessage("bot", "Napaka pri pošiljanju sporočila.");
+    return;
+  }
 
-    if (!res.ok) throw new Error("Napaka v odzivu.");
+  const reader = response.body.getReader();
+  let botMessage = "";
+  appendMessage("bot", ""); // create empty message
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder("utf-8");
-    let fullText = "";
+  const typewriter = document.querySelector(".chat-message.bot:last-child");
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      fullText += chunk;
-      responseEl.innerHTML = fullText;
-      scrollToBottom();
-    }
-  } catch (err) {
-    responseEl.innerHTML = "⚠️ Napaka pri odgovoru.";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = new TextDecoder().decode(value);
+    botMessage += chunk;
+    typewriter.textContent = botMessage;
   }
 });
 
-function appendMessage(sender, text) {
-  const msgEl = document.createElement("div");
-  msgEl.className = "message";
-  msgEl.innerHTML = `<strong>${sender}:</strong> ${text}`;
-  chatLog.appendChild(msgEl);
-  scrollToBottom();
-  return msgEl;
-}
-
-function scrollToBottom() {
+function appendMessage(role, text) {
+  const div = document.createElement("div");
+  div.className = `chat-message ${role}`;
+  div.textContent = text;
+  chatLog.appendChild(div);
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 
-input.addEventListener("keydown", (e) => {
+input.addEventListener("keydown", function (e) {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     form.dispatchEvent(new Event("submit"));
   }
 });
+
