@@ -5,47 +5,54 @@ const openai = new OpenAI({
 });
 
 exports.handler = async function (event) {
-  try {
-    const { message } = JSON.parse(event.body);
+  const { message } = JSON.parse(event.body);
 
-    const stream = await openai.chat.completions.create({
-      model: "gpt-4o",
-      stream: true,
-      messages: [
-        {
-          role: "system",
-          content:
-            "Deluješ kot moški AI mentor. Sprašuj podvprašanja, razčleni probleme in vodi uporabnika k rešitvi kot brat – jasno, jedrnato, brez nakladanja.",
-        },
-        {
-          role: "user",
-          content: message,
-        },
-      ],
-    });
+  const stream = await openai.chat.completions.create({
+    model: "gpt-4o",
+    stream: true,
+    messages: [
+      {
+        role: "system",
+        content: `
+Govori kot moški mentor – zrelo, stoično, brez nakladanja. Ne bodi prijateljski ali pretirano empatičen.
 
-    let fullMessage = "";
+Vedno govori jasno in ciljno: razčleni problem, postavi kratka podvprašanja in uporabnika vodi k rešitvi. Nikoli ne govori v prazno.
 
-    for await (const part of stream) {
-      const content = part.choices[0]?.delta?.content;
-      if (content) {
-        fullMessage += content;
-      }
-    }
+Ne izpisuj uvodnih fraz kot "Kako si?" ali "Razumem." – takoj se loti bistva.
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
+Ne uporabljaj oblikovanja kot so oklepaji, kode, oznake ali markdown. Ne piši nič v obliki kode. Govori samo v čistem, razumljivem jeziku.
+
+Tvoj stil je neposreden, analitičen, učinkovit. Si kot brat, ki ne olepšuje, ampak pomaga.
+
+Ko dobiš vprašanje, ga najprej razstaviš, postaviš ključno vprašanje nazaj in tako pelješ pogovor naprej. Osredotoči se na dejanski napredek uporabnika.
+        `.trim(),
       },
-      body: JSON.stringify({ message: fullMessage }),
-    };
-  } catch (error) {
-    console.error("Chat error:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Chat failed" }),
-    };
-  }
+      {
+        role: "user",
+        content: message,
+      },
+    ],
+  });
+
+  return new Response(streamToReadable(stream), {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+    },
+  });
 };
+
+function streamToReadable(stream) {
+  const encoder = new TextEncoder();
+  const reader = stream[Symbol.asyncIterator]();
+  return new ReadableStream({
+    async pull(controller) {
+      const { value, done } = await reader.next();
+      if (done) {
+        controller.close();
+      } else {
+        controller.enqueue(encoder.encode(value.choices[0]?.delta?.content || ""));
+      }
+    },
+  });
+}
 
